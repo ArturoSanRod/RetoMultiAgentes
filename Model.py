@@ -4,6 +4,11 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 import json
 
+#Para el server 
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import logging
+from sys import argv
+
 
 class espacioModel(Model):
     def __init__(self, width, height, num_agents, inicial):
@@ -12,6 +17,7 @@ class espacioModel(Model):
         self.num_agents = num_agents
         self.pasos = 0
         self.running = True
+        self.positions = []
 
         # Estado Inicial
         self.cantidad_botes = 0
@@ -53,7 +59,7 @@ class espacioModel(Model):
 
     def imprimePosiciones(self):
         matriz = [[" " for _ in range(self.grid.width)] for _ in range(self.grid.height)]
-        positions = []
+        
         for (cell_content, (x, y)) in self.grid.coord_iter():
             if any(isinstance(obj, espacioAgent) for obj in cell_content):
                 matriz[y][x] = "A"
@@ -63,8 +69,8 @@ class espacioModel(Model):
                 matriz[y][x] = "B"
             elif any(isinstance(obj, Basura) for obj in cell_content):
                 matriz[y][x] = "T"
-            positions.append({"x": x, "y": y, "content": matriz[y][x]})
-        print(json.dumps(positions))
+            self.positions.append({"x": x, "y": y, "content": matriz[y][x]})
+        return self.positions
 
 
 class Obstaculo(Agent):
@@ -125,6 +131,7 @@ class espacioAgent(Agent):
             self.deposita_basura()
 
 
+    
 def run_model(filename):
     with open(filename) as f:
         data = f.readlines()
@@ -138,12 +145,54 @@ def run_model(filename):
         model.step()
         model.imprimePosiciones()
         
-    return model.pasos
+    return model.pasos, model.positions
 
 
 
-pasos_totales = run_model("inicial.txt")
+data = run_model("inicial.txt")
 
 
+datajson = json.dumps({"data": data})
 # Imprimir Pasos Totales
-print(json.dumps({"pasos_totales": pasos_totales}))
+print(data)
+
+class Server(BaseHTTPRequestHandler):
+    def _set_response(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    
+    def do_GET(self):
+        self._set_response()
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write('GET request for {}'.format(self.path).encode('utf-8'))
+
+    def do_POST(self):
+        self._set_response()
+        self.end_headers()
+        self.wfile.write(datajson.encode('utf-8'))
+        
+        
+def run(server_class=HTTPServer, handler_class=Server, port=8585):
+    logging.basicConfig(level=logging.INFO)
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    logging.info("Starting server... \n")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass 
+    httpd.server_close()
+    logging.info("Stopping server... \n")
+
+if __name__ == "__main__":
+    
+    if len(argv) == 2:
+        run(port=int(argv[1]))
+    else:
+        run()
+
+def main():
+    run(8585)
