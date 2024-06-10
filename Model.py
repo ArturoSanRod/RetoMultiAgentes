@@ -4,7 +4,7 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 import json
 
-#Para el server 
+# Para el server 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 from sys import argv
@@ -17,9 +17,9 @@ class espacioModel(Model):
         self.num_agents = num_agents
         self.pasos = 0
         self.running = True
-        self.positions = []
+        self.positions_per_step = []
 
-        # Estado Inicial
+        # Initial State
         self.cantidad_botes = 0
         for y in range(height):
             for x in range(width):
@@ -45,6 +45,7 @@ class espacioModel(Model):
     def step(self):
         self.schedule.step()
         self.pasos += 1
+        self.positions_per_step.append(self.imprimePosiciones())
         if self.cantidad_botes == 0:
             self.running = False
 
@@ -58,19 +59,19 @@ class espacioModel(Model):
         return random.choice(empty_cells)
 
     def imprimePosiciones(self):
-        matriz = [[" " for _ in range(self.grid.width)] for _ in range(self.grid.height)]
-        
+        matriz = [["0" for _ in range(self.grid.width)] for _ in range(self.grid.height)]
+
         for (cell_content, (x, y)) in self.grid.coord_iter():
             if any(isinstance(obj, espacioAgent) for obj in cell_content):
                 matriz[y][x] = "A"
             elif any(isinstance(obj, Obstaculo) for obj in cell_content):
-                matriz[y][x] = "O"
+                matriz[y][x] = "X"
             elif any(isinstance(obj, BoteBasura) for obj in cell_content):
-                matriz[y][x] = "B"
+                matriz[y][x] = "P"
             elif any(isinstance(obj, Basura) for obj in cell_content):
-                matriz[y][x] = "T"
-            self.positions.append({"x": x, "y": y, "content": matriz[y][x]})
-        return self.positions
+                basura = next(obj for obj in cell_content if isinstance(obj, Basura))
+                matriz[y][x] = str(basura.cantidad)
+        return matriz
 
 
 class Obstaculo(Agent):
@@ -131,7 +132,6 @@ class espacioAgent(Agent):
             self.deposita_basura()
 
 
-    
 def run_model(filename):
     with open(filename) as f:
         data = f.readlines()
@@ -143,17 +143,14 @@ def run_model(filename):
 
     while model.running:
         model.step()
-        model.imprimePosiciones()
-        
-    return model.pasos, model.positions
+
+    return model.pasos, model.positions_per_step
 
 
-
-data = run_model("inicial.txt")
-
+data = run_model(input())
 
 datajson = json.dumps({"data": data})
-# Imprimir Pasos Totales
+# Print Total Steps and Positions Data for Each Step
 print(data)
 
 class Server(BaseHTTPRequestHandler):
