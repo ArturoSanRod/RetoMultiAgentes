@@ -3,17 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 [System.Serializable]
 public class InitialData
 {
-    public Dimensions Dimensions;
+    public Dimensions dimensions;
     public List<List<string>> Terrain;
+    public List<AgentPosition> AgentPositions;
 }
-
 [System.Serializable]
 public class Dimensions
 {
-    public int[] DimensionsArray;
+    public int[] DimensionsArray = new int[2];
+}
+[System.Serializable]
+public class AgentPosition 
+{
+    public string type;
+    public int x;
+    public int y;
+    public int z;
 }
 
 public class WebClient : MonoBehaviour
@@ -22,7 +31,7 @@ public class WebClient : MonoBehaviour
     public GameObject obstaclePrefab;
     public GameObject trashPrefab;
     public GameObject binPrefab;
-    public GameObject robotPrefab;
+    public GameObject agentPrefab;
 
     private void Start()
     {
@@ -41,16 +50,15 @@ public class WebClient : MonoBehaviour
 
         if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
         {
-            Debug.Log(www.error);
+            Debug.LogError("Error: " + www.error);
         }
         else
         {
-            Debug.Log(www.downloadHandler.text);
+            Debug.Log("Received JSON: " + www.downloadHandler.text);
             InitialData initialData = JsonUtility.FromJson<InitialData>(www.downloadHandler.text);
-            Debug.Log(initialData);
-            if (initialData != null && initialData.Dimensions != null && initialData.Terrain != null)
+
+            if (initialData != null && initialData.dimensions != null && initialData.Terrain != null)
             {
-                Debug.Log(initialData.Dimensions.DimensionsArray.Length);
                 GenerateTerrain(initialData);
             }
             else
@@ -58,67 +66,59 @@ public class WebClient : MonoBehaviour
                 Debug.LogError("InitialData or its properties are null");
             }
         }
-        Debug.Log("Request completed");
     }
 
     void GenerateTerrain(InitialData data)
     {
-        if (data.Dimensions.DimensionsArray.Length != 2)
-        {
-            Debug.LogError("Dimensions array does not have the correct length");
-            return;
-        }
+        int height = data.dimensions.DimensionsArray[0];
+        int width = data.dimensions.DimensionsArray[1];
 
-        int height = data.Dimensions.DimensionsArray[0];
-        int width = data.Dimensions.DimensionsArray[1];
-        
-        if (height != data.Terrain.Count)
-        {
-            Debug.LogError("Height dimension does not match the number of rows in Terrain");
-            return;
-        }
 
         for (int i = 0; i < height; i++)
         {
-            if (data.Terrain[i].Count != width)
-            {
-                Debug.LogError($"Width dimension does not match the number of columns in row {i} of Terrain");
-                return;
-            }
-
             for (int j = 0; j < width; j++)
             {
                 string cell = data.Terrain[i][j];
                 Vector3 position = new Vector3(j, i, 0);
 
-                if (cell == "X")
+                switch (cell)
                 {
-                    Instantiate(obstaclePrefab, position, Quaternion.identity);
-                    Debug.Log("Obstacle at " + position);
-                }
-                else if (cell == "P")
-                {
-                    Instantiate(binPrefab, position, Quaternion.identity);
-                    Debug.Log("Bin at " + position);
-                }
-                else if (cell != "0" && cell != "X" && cell != "P")
-                {
-                    Instantiate(trashPrefab, position, Quaternion.identity);
-                    Debug.Log("Trash at " + position + " with type " + cell);
-                }
-                else if (cell == "0")
-                {
-                    Instantiate(groundPrefab, position, Quaternion.identity);
-                    Debug.Log("Ground at " + position);
+                    case "X":
+                        Instantiate(obstaclePrefab, position, Quaternion.identity);
+                        break;
+                    case "P":
+                        Instantiate(binPrefab, position, Quaternion.identity);
+                        break;
+                    case "0":
+                        Instantiate(groundPrefab, position, Quaternion.identity);
+                        break;
+                    default:
+                        Debug.LogError("Unknown cell type: " + cell);
+                        break;
                 }
             }
         }
 
-        for (int i = 0; i < 5; i++)
+
+        foreach (var agent in data.AgentPositions)
         {
-            Vector3 robotPosition = new Vector3(i, 0, 0);
-            Instantiate(robotPrefab, robotPosition, Quaternion.identity);
-            Debug.Log("Robot at " + robotPosition);
+            Vector3 agentPosition = new Vector3(agent.x, agent.y, agent.z);
+            GameObject prefabToUse = agentPrefab; 
+
+            switch (agent.type)
+            {
+                case "A":
+                    prefabToUse = agentPrefab;
+                    break;
+                case "X":
+                    prefabToUse = obstaclePrefab;
+                    break;
+                case "P":
+                    prefabToUse = binPrefab;
+                    break;
+            }
+
+            Instantiate(prefabToUse, agentPosition, Quaternion.identity);
         }
     }
 }

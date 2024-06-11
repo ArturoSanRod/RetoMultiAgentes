@@ -323,6 +323,7 @@ MonoBehaviour:
   trashPrefab: {fileID: 264751127364740207, guid: 47e3714abf8f64c0d8a7c370d38c1ce7, type: 3}
   binPrefab: {fileID: 7602342695349368770, guid: 60a81d054e8b7894482c2fe57553d989, type: 3}
   robotPrefab: {fileID: 606439698159241709, guid: d66107f752bf24d03a2a56e45df34b2b, type: 3}
+  agentPrefab: {fileID: 1765259844}
 --- !u!4 &427508681
 Transform:
   m_ObjectHideFlags: 0
@@ -720,6 +721,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 47e3714abf8f64c0d8a7c370d38c1ce7, type: 3}
+--- !u!1 &1765259844 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 606439698159241709, guid: d66107f752bf24d03a2a56e45df34b2b, type: 3}
+  m_PrefabInstance: {fileID: 283611457}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2076247461
 PrefabInstance:
   m_ObjectHideFlags: 0

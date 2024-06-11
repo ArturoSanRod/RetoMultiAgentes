@@ -4,7 +4,7 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 import json
 
-# Para el servidor
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 from sys import argv
@@ -19,7 +19,7 @@ class espacioModel(Model):
         self.running = True
         self.positions_per_step = []
 
-        # Crear agentes y obstáculos estado inicial
+
         self.cantidad_botes = 0
         for y in range(height):
             for x in range(width):
@@ -58,21 +58,28 @@ class espacioModel(Model):
         ]
         return random.choice(empty_cells)
 
-    # Regresa posiciones de todos los agentes en el grid
+    # Get positions of all agents in the grid
     def get_positions(self):
+        agent_positions = []
         matriz = [["0" for _ in range(self.grid.width)] for _ in range(self.grid.height)]
 
         for (cell_content, (x, y)) in self.grid.coord_iter():
             if any(isinstance(obj, espacioAgent) for obj in cell_content):
                 matriz[y][x] = "A"
+                for obj in cell_content:
+                    if isinstance(obj, espacioAgent):
+                        agent_positions.append({"type": "A", "x": x, "y": y, "z": 0})
             elif any(isinstance(obj, Obstaculo) for obj in cell_content):
                 matriz[y][x] = "X"
+                agent_positions.append({"type": "X", "x": x, "y": y, "z": 0})
             elif any(isinstance(obj, BoteBasura) for obj in cell_content):
                 matriz[y][x] = "P"
+                agent_positions.append({"type": "P", "x": x, "y": y, "z": 0})
             elif any(isinstance(obj, Basura) for obj in cell_content):
                 basura = next(obj for obj in cell_content if isinstance(obj, Basura))
                 matriz[y][x] = str(basura.cantidad)
-        return matriz
+                agent_positions.append({"type": "B", "x": x, "y": y, "z": 0, "cantidad": basura.cantidad})
+        return matriz, agent_positions
 
 
 class Obstaculo(Agent):
@@ -144,12 +151,14 @@ def run_model(filename):
 
     steps_data = []
 
-    # Nuevo formato json para unity web client
+
     while model.running:
         model.step()
+        terrain, positions = model.get_positions()
         steps_data.append({
             "Dimensions": [height, width],
-            "Terrain": model.get_positions()
+            "Terrain": terrain,
+            "AgentPositions": positions
         })
 
     return steps_data
@@ -157,7 +166,7 @@ def run_model(filename):
 
 data = run_model('inicial.txt')
 datajson = json.dumps(data[-1])
-# Imprimir en la terminal arreglo de cada paso
+
 print(datajson)
 
 class Server(BaseHTTPRequestHandler):
