@@ -19,7 +19,7 @@ class espacioModel(Model):
         self.running = True
         self.positions_per_step = []
 
-        # Initial State
+        # Crear agentes y obstaculos estado inicial
         self.cantidad_botes = 0
         for y in range(height):
             for x in range(width):
@@ -45,7 +45,7 @@ class espacioModel(Model):
     def step(self):
         self.schedule.step()
         self.pasos += 1
-        self.positions_per_step.append(self.imprimePosiciones())
+        self.positions_per_step.append(self.get_positions())
         if self.cantidad_botes == 0:
             self.running = False
 
@@ -58,7 +58,8 @@ class espacioModel(Model):
         ]
         return random.choice(empty_cells)
 
-    def imprimePosiciones(self):
+    # Regresa posiciones de todos los agentes en el grid 
+    def get_positions(self):
         matriz = [["0" for _ in range(self.grid.width)] for _ in range(self.grid.height)]
 
         for (cell_content, (x, y)) in self.grid.coord_iter():
@@ -141,28 +142,34 @@ def run_model(filename):
 
     model = espacioModel(width, height, 5, inicial)
 
+    steps_data = []
+
+    # Nuevo formato json para unity web client
     while model.running:
         model.step()
+        steps_data.append({
+            "dimensions": {"n": height, "m": width},
+            "terrain": model.get_positions()
+        })
 
-    return model.pasos, model.positions_per_step
+    return model.pasos, steps_data
 
 
 data = run_model(input())
 
 datajson = json.dumps({"data": data})
-# Print Total Steps and Positions Data for Each Step
-print(data)
+#Imprimir en la terminal arreglo de cada paso
+print(datajson)
 
 class Server(BaseHTTPRequestHandler):
     def _set_response(self):
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-type', 'application/json')
         self.end_headers()
 
-    
     def do_GET(self):
         self._set_response()
-        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-type', 'application/json')
         self.end_headers()
         self.wfile.write('GET request for {}'.format(self.path).encode('utf-8'))
 

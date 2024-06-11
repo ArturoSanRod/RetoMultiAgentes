@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -15,7 +14,7 @@ public class Dimensions
 public class InitialData
 {
     public Dimensions dimensions;
-    public List<string[]> terrain;
+    public List<List<string>> terrain;
 }
 
 public class WebClient : MonoBehaviour
@@ -55,11 +54,11 @@ public class WebClient : MonoBehaviour
 
     void GenerateTerrain(InitialData data)
     {
-        for (int i = 0; i < data.dimensions.n; i++)
+        for (int i = 0; i < data.dimensions.m; i++)
         {
-            for (int j = 0; j < data.dimensions.m; j++)
+            for (int j = 0; j < data.dimensions.n; j++)
             {
-                Vector3 position = new Vector3(j, 0, -i);
+                Vector3 position = new Vector3(j, i, 0);
                 string cell = data.terrain[i][j];
 
                 if (cell == "X")
