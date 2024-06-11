@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 import json
 
-# Definición de agentes
+# Definición de agentes trash, robot
 class TrashAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
@@ -42,7 +42,7 @@ class RobotAgent(Agent):
         self.model.grid.move_agent(self, trash_bin_pos)
         self.storage = 0
 
-# Modelo de simulación
+# Modelo de simulación 
 class TrashModel(Model):
     def __init__(self, height, width, trash_map):
         self.grid = MultiGrid(width, height, True)
@@ -62,7 +62,7 @@ class TrashModel(Model):
 
         # Agregar robots
         self.robots = []
-        for i in range(10):
+        for i in range(5):
             robot = RobotAgent(i, self)
             self.schedule.add(robot)
             self.grid.place_agent(robot, (0, 0))  # Ubicación inicial de los robots
@@ -103,7 +103,7 @@ class Server(BaseHTTPRequestHandler):
         # Ejecutar un paso de la simulación
         model.step()
 
-        # Obtener las posiciones de todos los robots
+        # Obtener las posiciones de todos los robots en cada paso
         positions = [{"id": robot.unique_id, "x": robot.pos[0], "y": robot.pos[1]} for robot in model.robots]
 
         self._set_response()
@@ -123,7 +123,7 @@ def run(server_class=HTTPServer, handler_class=Server, port=8585):
 
 # Ejemplo de uso
 if __name__ == '__main__':
-    file_path = "/Users/jesusramirez/Documents/RetoPrueba/RetoPrueba/inicial.txt"
+    file_path = "inicial.txt"
     height, width, trash_map = read_input_file(file_path)
     model = TrashModel(height, width, trash_map)
     

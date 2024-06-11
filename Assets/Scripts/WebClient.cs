@@ -6,6 +6,7 @@ using UnityEngine.Networking;
 public class WebClient : MonoBehaviour
 {
     public RobotManager robotManager;
+    public CreateGrid createGrid;
 
     [System.Serializable]
     public class RobotPosition
@@ -42,7 +43,9 @@ public class WebClient : MonoBehaviour
             {
                 Debug.Log(www.downloadHandler.text);
                 RobotPositionList positions = JsonUtility.FromJson<RobotPositionList>("{\"robots\":" + www.downloadHandler.text + "}");
-                robotManager.UpdateRobotPositions(positions.robots);
+                    robotManager.UpdateRobotPositions(positions.robots);
+                    createGrid.CreateTiles(positions.robots);
+                
             }
         }
     }
