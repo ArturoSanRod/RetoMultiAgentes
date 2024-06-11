@@ -3,122 +3,63 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-[System.Serializable]
-public class InitialData
-{
-    public Dimensions Dimensions;
-    public List<List<string>> Terrain;
-}
-
-[System.Serializable]
-public class Dimensions
-{
-    public int[] DimensionsArray;
-}
-
 public class WebClient : MonoBehaviour
 {
-    public GameObject groundPrefab;
-    public GameObject obstaclePrefab;
-    public GameObject trashPrefab;
-    public GameObject binPrefab;
-    public GameObject robotPrefab;
+    public RobotManager robotManager;
 
-    private void Start()
+    [System.Serializable]
+    public class RobotPosition
     {
-        StartCoroutine(RequestInitialData());
+        public int id;
+        public float x;
+        public float y;
     }
 
-    IEnumerator RequestInitialData()
+    [System.Serializable]
+    public class RobotPositionList
     {
+        public List<RobotPosition> robots;
+    }
+
+    IEnumerator SendData(string data)
+    {
+        WWWForm form = new WWWForm();
         string url = "http://localhost:8585";
-        UnityWebRequest www = new UnityWebRequest(url, "POST");
-        www.downloadHandler = new DownloadHandlerBuffer();
-        www.uploadHandler = new UploadHandlerRaw(new byte[0]);
-        www.SetRequestHeader("Content-Type", "application/json");
-
-        yield return www.SendWebRequest();
-
-        if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+        using (UnityWebRequest www = UnityWebRequest.Post(url, form))
         {
-            Debug.Log(www.error);
-        }
-        else
-        {
-            Debug.Log(www.downloadHandler.text);
-            InitialData initialData = JsonUtility.FromJson<InitialData>(www.downloadHandler.text);
-            Debug.Log(initialData);
-            if (initialData != null && initialData.Dimensions != null && initialData.Terrain != null)
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(data);
+            www.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
             {
-                Debug.Log(initialData.Dimensions.DimensionsArray.Length);
-                GenerateTerrain(initialData);
+                Debug.Log(www.error);
             }
             else
             {
-                Debug.LogError("InitialData or its properties are null");
+                Debug.Log(www.downloadHandler.text);
+                RobotPositionList positions = JsonUtility.FromJson<RobotPositionList>("{\"robots\":" + www.downloadHandler.text + "}");
+                robotManager.UpdateRobotPositions(positions.robots);
             }
         }
-        Debug.Log("Request completed");
     }
 
-    void GenerateTerrain(InitialData data)
+    void Start()
     {
-        if (data.Dimensions.DimensionsArray.Length != 2)
+        // Simula el envío de datos iniciales si es necesario
+        string json = "{}";
+        StartCoroutine(SendData(json));
+    }
+
+    void Update()
+    {
+        // Puedes llamar a SendData periódicamente si quieres actualizar constantemente la posición de los robots
+        if (Time.frameCount % 60 == 0) // Cada segundo
         {
-            Debug.LogError("Dimensions array does not have the correct length");
-            return;
-        }
-
-        int height = data.Dimensions.DimensionsArray[0];
-        int width = data.Dimensions.DimensionsArray[1];
-        
-        if (height != data.Terrain.Count)
-        {
-            Debug.LogError("Height dimension does not match the number of rows in Terrain");
-            return;
-        }
-
-        for (int i = 0; i < height; i++)
-        {
-            if (data.Terrain[i].Count != width)
-            {
-                Debug.LogError($"Width dimension does not match the number of columns in row {i} of Terrain");
-                return;
-            }
-
-            for (int j = 0; j < width; j++)
-            {
-                string cell = data.Terrain[i][j];
-                Vector3 position = new Vector3(j, i, 0);
-
-                if (cell == "X")
-                {
-                    Instantiate(obstaclePrefab, position, Quaternion.identity);
-                    Debug.Log("Obstacle at " + position);
-                }
-                else if (cell == "P")
-                {
-                    Instantiate(binPrefab, position, Quaternion.identity);
-                    Debug.Log("Bin at " + position);
-                }
-                else if (cell != "0" && cell != "X" && cell != "P")
-                {
-                    Instantiate(trashPrefab, position, Quaternion.identity);
-                    Debug.Log("Trash at " + position + " with type " + cell);
-                }
-                else if (cell == "0")
-                {
-                    Instantiate(groundPrefab, position, Quaternion.identity);
-                    Debug.Log("Ground at " + position);
-                }
-            }
-        }
-
-        for (int i = 0; i < 5; i++)
-        {
-            Vector3 robotPosition = new Vector3(i, 0, 0);
-            Instantiate(robotPrefab, robotPosition, Quaternion.identity);
-            Debug.Log("Robot at " + robotPosition);
+            StartCoroutine(SendData("{}"));
         }
     }
 }
