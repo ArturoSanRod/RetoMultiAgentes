@@ -161,7 +161,7 @@ def run(server_class=HTTPServer, handler_class=Server, port=8585):
     logging.info("Stopping httpd...\n")
 
 if __name__ == '__main__':
-    file_path = "inicial.txt"
+    file_path = "final_test.txt"
     height, width, trash_map = read_input_file(file_path)
     model = TrashModel(height, width, trash_map)
     
