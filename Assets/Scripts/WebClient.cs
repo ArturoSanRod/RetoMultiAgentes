@@ -1,3 +1,8 @@
+/* 
+COMMENT:
+Este script se encarga de enviar y recibir datos del servidor web. En este caso, se envía un JSON vacío al servidor y se recibe un JSON con la posición de los robots, la basura y el basurero. Luego, se actualizan las posiciones de los robots y se crea el grid con la basura y el basurero.
+
+*/
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -17,9 +22,26 @@ public class WebClient : MonoBehaviour
     }
 
     [System.Serializable]
-    public class RobotPositionList
+    public class TrashPosition
+    {
+        public float x;
+        public float y;
+        public int trash_amount;
+    }
+
+    [System.Serializable]
+    public class TrashBinPosition
+    {
+        public float x;
+        public float y;
+    }
+
+    [System.Serializable]
+    public class PositionData
     {
         public List<RobotPosition> robots;
+        public List<TrashPosition> trash;
+        public TrashBinPosition trashbin;
     }
 
     IEnumerator SendData(string data)
@@ -42,10 +64,10 @@ public class WebClient : MonoBehaviour
             else
             {
                 Debug.Log(www.downloadHandler.text);
-                RobotPositionList positions = JsonUtility.FromJson<RobotPositionList>("{\"robots\":" + www.downloadHandler.text + "}");
-                    robotManager.UpdateRobotPositions(positions.robots);
-                    createGrid.CreateTiles(positions.robots);
-                
+                PositionData positions = JsonUtility.FromJson<PositionData>(www.downloadHandler.text);
+                robotManager.UpdateRobotPositions(positions.robots);
+                createGrid.CreateTiles(positions.robots, positions.trash, positions.trashbin);
+
             }
         }
     }

@@ -245,6 +245,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   robotPrefab: {fileID: 1417914196113681008, guid: a8d194c0ca0e749e8a1df72259047f9d, type: 3}
   speed: 4
+  createGrid: {fileID: 770728353}
 --- !u!4 &692590649
 Transform:
   m_ObjectHideFlags: 0
@@ -289,8 +290,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e142e6c91514734297a58ecdb49236e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tilePrefabwhite: {fileID: 2445677735401937264, guid: b7041ffdb9f1b914f914e2ee0e60ff73, type: 3}
-  tilePrefabblack: {fileID: 2445677735401937264, guid: 7e900281be3d0ac468b9f1c2ed8a265e, type: 3}
+  tilePrefabWhite: {fileID: 2445677735401937264, guid: b7041ffdb9f1b914f914e2ee0e60ff73, type: 3}
+  tilePrefabBlack: {fileID: 2445677735401937264, guid: 7e900281be3d0ac468b9f1c2ed8a265e, type: 3}
+  trashPrefab: {fileID: 2445677735401937264, guid: 1a1e1d3457be87f44a4bcd95a3178ad4, type: 3}
+  trashBinPrefab: {fileID: 2445677735401937264, guid: 3159923f977c6624995725011fa3a14f, type: 3}
   webClient: {fileID: 940291418}
 --- !u!4 &770728354
 Transform:
