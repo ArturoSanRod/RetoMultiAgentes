@@ -1,17 +1,15 @@
-/* 
-COMMENT:
-Este script se encarga de enviar y recibir datos del servidor web. En este caso, se envía un JSON vacío al servidor y se recibe un JSON con la posición de los robots, la basura y el basurero. Luego, se actualizan las posiciones de los robots y se crea el grid con la basura y el basurero.
-
-*/
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using TMPro;
 
 public class WebClient : MonoBehaviour
 {
     public RobotManager robotManager;
     public CreateGrid createGrid;
+    public TextMeshProUGUI stepsText; // Referencia al componente TextMeshProUGUI
+    public TextMeshProUGUI completedText; // Referencia al componente TextMeshProUGUI
 
     [System.Serializable]
     public class RobotPosition
@@ -42,6 +40,8 @@ public class WebClient : MonoBehaviour
         public List<RobotPosition> robots;
         public List<TrashPosition> trash;
         public TrashBinPosition trashbin;
+        public int steps;
+        public bool completed;
     }
 
     IEnumerator SendData(string data)
@@ -68,6 +68,9 @@ public class WebClient : MonoBehaviour
                 robotManager.UpdateRobotPositions(positions.robots);
                 createGrid.CreateTiles(positions.robots, positions.trash, positions.trashbin);
 
+                // Actualizar el texto de pasos y si ya termino
+                stepsText.text = "Steps: " + positions.steps;
+                completedText.text = "Completed: " + positions.completed;
             }
         }
     }
@@ -81,8 +84,7 @@ public class WebClient : MonoBehaviour
 
     void Update()
     {
-        // Puedes llamar a SendData periódicamente si quieres actualizar constantemente la posición de los robots
-        if (Time.frameCount % 60 == 0) // Cada segundo
+        if (Time.frameCount % 60 == 0) // Cada segundo se actualiza la información mandando un mensaje vacío
         {
             StartCoroutine(SendData("{}"));
         }

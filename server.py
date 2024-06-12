@@ -2,8 +2,8 @@ from mesa import Agent, Model
 from mesa.space import MultiGrid
 from mesa.time import SimultaneousActivation
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import logging # Para mensajes de debug y pruebas
-import json # Para manejar los datos en formato JSON
+import logging  # Para mensajes de debug y pruebas
+import json  # Para manejar los datos en formato JSON
 
 # Definición de agentes trash, robot
 class TrashAgent(Agent):
@@ -15,19 +15,19 @@ class RobotAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         self.storage = 0
-        self.capacity = 5 # Capacidad máxima de basura que puede llevar
+        self.capacity = 5  # Capacidad máxima de basura que puede llevar
 
     def step(self):
         # Moverse y recolectar basura
         self.move()
         self.collect_trash()
 
-    def move(self): # De unos posibles pasos se elige uno aleatoriamente
+    def move(self):  # De unos posibles pasos se elige uno aleatoriamente
         possible_steps = self.model.grid.get_neighborhood(self.pos, moore=True, include_center=False)
         new_position = self.random.choice(possible_steps)
         self.model.grid.move_agent(self, new_position)
 
-    def collect_trash(self): # Recolectar basura de la celda actual y llevarlo al basurero
+    def collect_trash(self):  # Recolectar basura de la celda actual y llevarlo al basurero
         cell_contents = self.model.grid.get_cell_list_contents([self.pos])
         for agent in cell_contents:
             if isinstance(agent, TrashAgent) and agent.trash_amount > 0:
@@ -37,7 +37,7 @@ class RobotAgent(Agent):
                 if self.storage == self.capacity:
                     self.move_to_trash_bin()
 
-    def move_to_trash_bin(self): # Moverse al basurero y vaciar la basura
+    def move_to_trash_bin(self):  # Moverse al basurero y vaciar la basura
         trash_bin_pos = self.model.trash_bin_pos
         self.model.grid.move_agent(self, trash_bin_pos)
         self.storage = 0
@@ -46,10 +46,12 @@ class RobotAgent(Agent):
 class TrashModel(Model): 
     def __init__(self, height, width, trash_map):
         self.grid = MultiGrid(width, height, True)
-        self.schedule = SimultaneousActivation(self) # Activación simultánea de agentes esto es para que todos los agentes actúen al mismo tiempo y no uno por uno
+        self.schedule = SimultaneousActivation(self)  # Activación simultánea de agentes
         self.trash_bin_pos = None
+        self.steps = 0  # Contador de pasos
+        self.all_trash_collected = False  # Bandera para indicar si toda la basura ha sido recolectada
         
-        # Crear celdas con basura obstaculos y basurero
+        # Crear celdas con basura, obstáculos y basurero
         for (content, (x, y)) in trash_map.items():
             if content == 'X':
                 continue  # Ignorar celdas bloqueadas
@@ -72,8 +74,15 @@ class TrashModel(Model):
 
     def step(self):
         self.schedule.step()
+        self.steps += 1  # Incrementar contador de pasos
+        if not self.get_trash_positions():  # Verificar si toda la basura ha sido recolectada
+            if self.all_trash_collected:
+                return True  # Indica que la simulación ha terminado
+            else:
+                self.all_trash_collected = True  # Marcar que toda la basura ha sido recolectada
+        return False
 
-    def get_trash_positions(self): # Obtener las posiciones de la basura para enviarlas a unity
+    def get_trash_positions(self):  # Obtener las posiciones de la basura para enviarlas a Unity
         trash_positions = []
         for agent in self.schedule.agents:
             if isinstance(agent, TrashAgent) and agent.trash_amount > 0:
@@ -82,11 +91,13 @@ class TrashModel(Model):
                     "y": agent.pos[1], 
                     "trash_amount": agent.trash_amount
                 })
-        print(f"Posiciones de basura: {trash_positions}")  # Queria ver si se estaban recolectando bien las posiciones de la basura y las imprimi en consola
         return trash_positions
 
     def get_trash_bin_position(self):
-        return {"x": self.trash_bin_pos[0], "y": self.trash_bin_pos[1]} # Posición del basurero para unity
+        return {"x": self.trash_bin_pos[0], "y": self.trash_bin_pos[1]}  # Posición del basurero para Unity
+
+    def get_steps(self):
+        return self.steps  # Devuelve el número de pasos
 
 # Función para leer el archivo de entrada
 def read_input_file(file_path):
@@ -118,15 +129,24 @@ class Server(BaseHTTPRequestHandler):
         data = json.loads(post_data)
 
         # Ejecutar un paso de la simulación
-        model.step()
+        completed = model.step()
 
         # Obtener las posiciones de todos los robots y basura en cada paso
         robot_positions = [{"id": robot.unique_id, "x": robot.pos[0], "y": robot.pos[1]} for robot in model.robots]
         trash_positions = model.get_trash_positions()
         trash_bin_position = model.get_trash_bin_position()
+        steps = model.get_steps()
+
+        response = {
+            "robots": robot_positions,
+            "trash": trash_positions,
+            "trashbin": trash_bin_position,
+            "steps": steps,
+            "completed": completed
+        }
 
         self._set_response()
-        self.wfile.write(json.dumps({"robots": robot_positions, "trash": trash_positions, "trashbin": trash_bin_position}).encode('utf-8'))
+        self.wfile.write(json.dumps(response).encode('utf-8'))
 
 def run(server_class=HTTPServer, handler_class=Server, port=8585):
     logging.basicConfig(level=logging.INFO)
